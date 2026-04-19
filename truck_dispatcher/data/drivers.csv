@@ -1,7 +1,0 @@
-driver_id,name,phone_number,current_lat,current_lng,hos_left_hours,simulated_willing,total_deliveries,on_time_deliveries,late_deliveries,damaged_deliveries,accepted_assignments,rating
-D001,Amatya,+16234769410,33.4255,-111.94,16.060517955974674,False,120,110,8,1,122,4.56
-D002,Praharsh,+16027434124,33.45,-111.9,20.0,False,85,73,8,1,82,4.4
-D003,Nishu,+14802466636,33.3,-112.05,20.0,False,150,142,5,0,149,4.66
-D004,Asmita,+12544219796,33.52,-111.78,20.0,False,60,49,8,2,55,4.23
-D005,Keval,+16232027230,33.41,-111.85,20.0,False,95,90,3,0,94,4.66
-D006,Aditya,+16232808972,33.6,-111.95,20.0,False,40,30,7,3,32,3.93
