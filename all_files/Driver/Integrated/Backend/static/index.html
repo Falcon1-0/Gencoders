@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Truck Dispatch Ranking + AI Calling</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* ── AVATAR OVERLAY ── */
+    #dispatch-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    #dispatch-overlay.active {
+      display: flex;
+    }
+
+    .overlay-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      max-width: 560px;
+      width: 100%;
+      padding: 24px;
+    }
+
+    /* HUD title */
+    .hud-title {
+      font-size: 13px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      opacity: 0.7;
+    }
+
+    /* Avatar container */
+    .avatar-wrap {
+      position: relative;
+      width: 260px;
+      height: 260px;
+    }
+
+    /* Rotating ring */
+    .avatar-wrap::before,
+    .avatar-wrap::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      animation: spin-ring 8s linear infinite;
+    }
+
+    .avatar-wrap::before {
+      inset: -18px;
+      border-top-color: rgba(56, 189, 248, 0.6);
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+    }
+
+    .avatar-wrap::after {
+      inset: -32px;
+      border-bottom-color: rgba(14, 165, 233, 0.4);
+      border-left-color: transparent;
+      border-top-color: transparent;
+      animation-direction: reverse;
+      animation-duration: 12s;
+    }
+
+    @keyframes spin-ring {
+      to { transform: rotate(360deg); }
+    }
+
+    /* SVG avatar */
+    #avatar-svg {
+      width: 260px;
+      height: 260px;
+      filter: drop-shadow(0 0 24px rgba(56,189,248,0.3));
+    }
+
+    /* Speech bubble */
+    .speech-bubble {
+      position: relative;
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 18px;
+      padding: 16px 22px;
+      width: 100%;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 10px solid transparent;
+      border-bottom-color: rgba(56, 189, 248, 0.3);
+      border-top: 0;
+    }
+
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 9px solid transparent;
+      border-bottom-color: rgba(17, 24, 39, 0.95);
+      border-top: 0;
+    }
+
+    .speech-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    #avatar-message {
+      font-size: 15px;
+      color: #e5e7eb;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1.4;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      width: 100%;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ea5e9, #38bdf8, #7dd3fc);
+      border-radius: 2px;
+      transition: width 0.6s ease;
+      box-shadow: 0 0 8px rgba(56,189,248,0.6);
+    }
+
+    /* Status pills row */
+    .status-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .status-pill {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(56,189,248,0.2);
+      color: #94a3b8;
+      background: rgba(14,165,233,0.05);
+      letter-spacing: 0.08em;
+      transition: all 0.3s;
+    }
+
+    .status-pill.active {
+      border-color: rgba(56,189,248,0.6);
+      color: #38bdf8;
+      background: rgba(56,189,248,0.1);
+      box-shadow: 0 0 10px rgba(56,189,248,0.15);
+    }
+
+    .status-pill.done {
+      border-color: rgba(34,197,94,0.4);
+      color: #86efac;
+      background: rgba(34,197,94,0.08);
+    }
+
+    .status-pill.failed {
+      border-color: rgba(239,68,68,0.4);
+      color: #fca5a5;
+      background: rgba(239,68,68,0.08);
+    }
+
+    /* Typing dots */
+    .typing-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+      margin-left: 6px;
+    }
+
+    .typing-dots span {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #38bdf8;
+      animation: dot-bounce 1.2s infinite;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dot-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* Glow pulse on avatar when talking */
+    .avatar-wrap.talking #avatar-svg {
+      filter: drop-shadow(0 0 32px rgba(56,189,248,0.55));
+    }
+
+    /* Scanline overlay */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      border-radius: 50%;
+    }
+
+    /* Corner brackets */
+    .corner-brackets {
+      position: absolute;
+      inset: -6px;
+      pointer-events: none;
+    }
+
+    .corner-brackets::before,
+    .corner-brackets::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: rgba(56,189,248,0.5);
+      border-style: solid;
+    }
+
+    .corner-brackets::before {
+      top: 0; left: 0;
+      border-width: 2px 0 0 2px;
+    }
+
+    .corner-brackets::after {
+      bottom: 0; right: 0;
+      border-width: 0 2px 2px 0;
+    }
+
+    /* Dismiss button */
+    #overlay-dismiss {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 10px 28px;
+      border-radius: 999px;
+      cursor: pointer;
+      width: auto;
+      transition: all 0.2s;
+    }
+
+    #overlay-dismiss:hover {
+      background: rgba(239,68,68,0.2);
+      border-color: rgba(239,68,68,0.6);
+    }
+
+    #overlay-dismiss.show { display: block; }
+
+    /* Job complete banner */
+    .result-banner {
+      display: none;
+      padding: 12px 24px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-align: center;
+      width: 100%;
+    }
+
+    .result-banner.success {
+      display: block;
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.35);
+      color: #86efac;
+    }
+
+    .result-banner.failure {
+      display: block;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+    }
+
+    #overlay-minimize {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: auto;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-family: 'Share Tech Mono', monospace;
+      letter-spacing: 0.08em;
+      background: rgba(17,24,39,0.8);
+      color: #94a3b8;
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    #overlay-minimize:hover {
+      border-color: rgba(56,189,248,0.5);
+      color: #38bdf8;
+      background: rgba(56,189,248,0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── DISPATCHER AVATAR OVERLAY ── -->
+  <div id="dispatch-overlay">
+    <div class="overlay-inner" style="position:relative;">
+      <button id="overlay-minimize" onclick="dismissOverlay()">✕ Hide</button>
+
+      <div class="hud-title">⬡ AI Dispatch Coordinator — Live</div>
+
+      <div class="avatar-wrap" id="avatar-wrap">
+        <div class="corner-brackets"></div>
+        <svg id="avatar-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#0c1a2e"/>
+              <stop offset="100%" stop-color="#050d1a"/>
+            </radialGradient>
+            <radialGradient id="faceGrad" cx="50%" cy="40%" r="55%">
+              <stop offset="0%" stop-color="#1e3a5f"/>
+              <stop offset="100%" stop-color="#0a1628"/>
+            </radialGradient>
+            <radialGradient id="glowEye" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0.3"/>
+            </radialGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="softglow">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <clipPath id="circleClip">
+              <circle cx="130" cy="130" r="118"/>
+            </clipPath>
+          </defs>
+
+          <!-- Background circle -->
+          <circle cx="130" cy="130" r="118" fill="url(#bgGrad)" stroke="rgba(56,189,248,0.3)" stroke-width="1.5"/>
+
+          <!-- Hex grid background -->
+          <g clip-path="url(#circleClip)" opacity="0.08">
+            <pattern id="hex" x="0" y="0" width="30" height="26" patternUnits="userSpaceOnUse">
+              <polygon points="15,2 28,9 28,17 15,24 2,17 2,9" fill="none" stroke="#38bdf8" stroke-width="0.5"/>
+            </pattern>
+            <rect width="260" height="260" fill="url(#hex)"/>
+          </g>
+
+          <!-- Neck / body base -->
+          <rect x="100" y="195" width="60" height="30" rx="8" fill="#0e2a4a" opacity="0.9"/>
+          <rect x="80" y="215" width="100" height="30" rx="10" fill="#0a1e38" opacity="0.9"/>
+
+          <!-- Collar / uniform detail -->
+          <path d="M100 215 L115 230 L130 220 L145 230 L160 215" stroke="rgba(56,189,248,0.5)" stroke-width="1.5" fill="none"/>
+
+          <!-- Head shape -->
+          <ellipse cx="130" cy="135" rx="62" ry="70" fill="url(#faceGrad)" stroke="rgba(56,189,248,0.2)" stroke-width="1"/>
+
+          <!-- Forehead tech line -->
+          <line x1="100" y1="85" x2="160" y2="85" stroke="rgba(56,189,248,0.3)" stroke-width="0.8"/>
+          <rect x="122" y="82" width="16" height="3" rx="1.5" fill="rgba(56,189,248,0.4)"/>
+
+          <!-- Temple implant left -->
+          <rect x="68" y="118" width="10" height="6" rx="2" fill="rgba(56,189,248,0.3)" stroke="rgba(56,189,248,0.5)" stroke-width="0.5"/>
+          <circle cx="73" cy="121" r="1.5" fill="#38bdf8" opacity="0.8">
+            <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Temple implant right -->
+          <rect x="182" y="118" width="10" height="6" rx="2" fill="rgba(56,189,248,0.3)" stroke="rgba(56,189,248,0.5)" stroke-width="0.5"/>
+          <circle cx="187" cy="121" r="1.5" fill="#38bdf8" opacity="0.8">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Eyebrows -->
+          <path d="M98 112 Q108 107 118 110" stroke="rgba(56,189,248,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M142 110 Q152 107 162 112" stroke="rgba(56,189,248,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+          <!-- Left eye -->
+          <g id="left-eye" filter="url(#glow)">
+            <ellipse cx="108" cy="125" rx="13" ry="9" fill="#020f1e" stroke="rgba(56,189,248,0.5)" stroke-width="1"/>
+            <circle cx="108" cy="125" r="6" fill="url(#glowEye)" opacity="0.9"/>
+            <circle cx="108" cy="125" r="3" fill="#001830"/>
+            <circle cx="110" cy="123" r="1.5" fill="white" opacity="0.6"/>
+            <!-- Blink animation -->
+            <ellipse id="left-blink" cx="108" cy="125" rx="13" ry="0" fill="#0c1a2e">
+              <animate attributeName="ry" values="0;9;0" dur="4s" begin="1s" repeatCount="indefinite" keyTimes="0;0.1;0.2" calcMode="spline" keySplines="0.5 0 0.5 1; 0.5 0 0.5 1"/>
+            </ellipse>
+          </g>
+
+          <!-- Right eye -->
+          <g id="right-eye" filter="url(#glow)">
+            <ellipse cx="152" cy="125" rx="13" ry="9" fill="#020f1e" stroke="rgba(56,189,248,0.5)" stroke-width="1"/>
+            <circle cx="152" cy="125" r="6" fill="url(#glowEye)" opacity="0.9"/>
+            <circle cx="152" cy="125" r="3" fill="#001830"/>
+            <circle cx="154" cy="123" r="1.5" fill="white" opacity="0.6"/>
+            <ellipse id="right-blink" cx="152" cy="125" rx="13" ry="0" fill="#0c1a2e">
+              <animate attributeName="ry" values="0;9;0" dur="4s" begin="1s" repeatCount="indefinite" keyTimes="0;0.1;0.2" calcMode="spline" keySplines="0.5 0 0.5 1; 0.5 0 0.5 1"/>
+            </ellipse>
+          </g>
+
+          <!-- Nose bridge -->
+          <path d="M126 132 Q123 142 126 148 Q130 151 134 148 Q137 142 134 132" stroke="rgba(100,150,200,0.3)" stroke-width="1" fill="none"/>
+
+          <!-- Mouth group - animated when talking -->
+          <g id="mouth-group">
+            <!-- Lips base -->
+            <path id="mouth-closed" d="M114 162 Q122 167 130 165 Q138 167 146 162 Q138 170 130 169 Q122 170 114 162Z" fill="rgba(56,189,248,0.2)" stroke="rgba(56,189,248,0.5)" stroke-width="1"/>
+            <!-- Talking mouth (hidden by default) -->
+            <ellipse id="mouth-open" cx="130" cy="163" rx="16" ry="0" fill="#020810" stroke="rgba(56,189,248,0.6)" stroke-width="1"/>
+          </g>
+
+          <!-- Chin detail -->
+          <path d="M118 185 Q130 192 142 185" stroke="rgba(56,189,248,0.15)" stroke-width="1" fill="none"/>
+
+          <!-- Ear left -->
+          <path d="M68 125 Q62 130 63 138 Q65 145 70 143" stroke="rgba(56,189,248,0.3)" stroke-width="1.5" fill="rgba(14,42,74,0.8)"/>
+
+          <!-- Ear right -->
+          <path d="M192 125 Q198 130 197 138 Q195 145 190 143" stroke="rgba(56,189,248,0.3)" stroke-width="1.5" fill="rgba(14,42,74,0.8)"/>
+
+          <!-- HUD data overlays -->
+          <g opacity="0.5" font-family="'Share Tech Mono', monospace" font-size="7" fill="#38bdf8">
+            <text x="72" y="165">SYS</text>
+            <text x="72" y="173">OK</text>
+            <text x="182" y="165">NET</text>
+            <text x="182" y="173">ON</text>
+          </g>
+
+          <!-- Bottom arc detail -->
+          <path d="M68 200 Q130 220 192 200" stroke="rgba(56,189,248,0.2)" stroke-width="1" fill="none"/>
+
+          <!-- Scanning line -->
+          <line id="scan-line" x1="68" y1="100" x2="192" y2="100" stroke="rgba(56,189,248,0.15)" stroke-width="1">
+            <animateTransform attributeName="transform" type="translate" values="0,0;0,80;0,0" dur="3s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+        <div class="scanlines"></div>
+      </div>
+
+      <!-- Speech bubble -->
+      <div class="speech-bubble">
+        <span class="speech-icon">📡</span>
+        <span id="avatar-message">Initializing dispatch sequence...
+          <span class="typing-dots" id="typing-dots">
+            <span></span><span></span><span></span>
+          </span>
+        </span>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>DISPATCH PROGRESS</span>
+          <span id="progress-text">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Status pills -->
+      <div class="status-row" id="status-pills">
+        <div class="status-pill active" id="pill-ranking">● Ranking</div>
+        <div class="status-pill" id="pill-calling">● Calling</div>
+        <div class="status-pill" id="pill-listening">● Listening</div>
+        <div class="status-pill" id="pill-assigning">● Assigning</div>
+      </div>
+
+      <!-- Result banner -->
+      <div class="result-banner" id="result-banner"></div>
+
+      <!-- Dismiss button (shown when done) -->
+      <button id="overlay-dismiss" onclick="dismissOverlay()">CLOSE DEBRIEF</button>
+
+    </div>
+  </div>
+  <!-- ── END OVERLAY ── -->
+
+  <div class="container">
+    <header>
+      <div>
+        <h1>Truck Dispatch Ranking + AI Calling</h1>
+        <div class="subtitle">Filter by HOS, rank by proximity to source and slack time, then call drivers sequentially until one accepts.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+  <div class="small" id="driver-count">Loading drivers...</div>
+  <button id="toggle-overlay-btn" class="secondary" style="width:auto;padding:8px 16px;font-size:13px;display:none;" onclick="toggleOverlay()">📡 Live Dispatch</button>
+</div>
+    </header>
+
+    <div class="kpi">
+      <div class="box"><div class="label">Eligible drivers</div><div class="value" id="rank-count">0</div></div>
+      <div class="box"><div class="label">Dispatch job</div><div class="value" id="job-id">-</div></div>
+      <div class="box"><div class="label">Job status</div><div class="value" id="job-status">idle</div></div>
+      <div class="box"><div class="label">Latest message</div><div class="value" id="latest-message">Ready</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Trip inputs</h2>
+        <div class="row2">
+          <div>
+            <label>Delivery name</label>
+            <input id="delivery-name" value="Order #4582" />
+          </div>
+          <div>
+            <label>Average speed (mph)</label>
+            <input id="avg-speed" type="number" value="45" step="0.1" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Source latitude</label>
+            <input id="source-lat" type="number" value="33.4484" step="0.0001" />
+          </div>
+          <div>
+            <label>Source longitude</label>
+            <input id="source-lng" type="number" value="-112.0740" step="0.0001" />
+          </div>
+          <div>
+            <label>Target latitude</label>
+            <input id="target-lat" type="number" value="33.8356" step="0.0001" />
+          </div>
+          <div>
+            <label>Target longitude</label>
+            <input id="target-lng" type="number" value="-111.7790" step="0.0001" />
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>Route multiplier</label>
+            <input id="route-multiplier" type="number" value="1.15" step="0.01" />
+          </div>
+          <div>
+            <label>Parcel delicacy</label>
+            <div class="select-wrapper">
+              <select id="parcelDelicacy" class="dark-select">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>Manual estimated delivery hours (optional)</label>
+            <input id="manual-hours" type="number" placeholder="Leave blank to auto-calculate" step="0.01" />
+          </div>
+          <div>
+            <label>Rating thresholds</label>
+            <input disabled value="Low ≥ 2.8 | Medium ≥ 3.8 | High ≥ 4.5" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="rank-btn">Rank eligible drivers</button>
+          <button id="dispatch-btn" class="secondary">Start sequential calling</button>
+        </div>
+        <p class="small">Use real coordinates for the source and target. If you want address lookup, plug a geocoder in front of the backend.</p>
+      </div>
+
+      <div class="card">
+        <h2>Execution log</h2>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+
+    <div class="split">
+      <div class="card">
+        <h2>Eligible drivers after ranking</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th><th>Driver</th><th>Distance to source</th><th>Required hours</th><th>HOS left</th><th>Rating</th><th>Score</th><th>Phone</th>
+            </tr>
+          </thead>
+          <tbody id="ranked-body"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Driver dataset</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>GPS</th><th>HOS left</th><th>Rating</th><th>History</th><th>Willing?</th>
+            </tr>
+          </thead>
+          <tbody id="drivers-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

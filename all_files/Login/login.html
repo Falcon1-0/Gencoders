@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dispatch Command — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07111b;
+      --panel:     rgba(11,24,38,0.85);
+      --panel2:    rgba(8,18,30,0.7);
+      --border:    rgba(34,211,238,0.12);
+      --border-hi: rgba(34,211,238,0.45);
+      --cyan:      #22d3ee;
+      --cyan-dim:  rgba(34,211,238,0.18);
+      --red:       #ef4444;
+      --red-dim:   rgba(239,68,68,0.16);
+      --ink:       #c8d8e8;
+      --slate:     #5a7a96;
+      --white:     #ffffff;
+      --display:   'Barlow Condensed', sans-serif;
+      --mono:      'DM Mono', monospace;
+      --body:      'Inter', sans-serif;
+    }
+
+    html { color-scheme: dark; }
+
+    body {
+      font-family: var(--body);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 0% 100%, rgba(239,68,68,0.16), transparent 30%),
+        radial-gradient(circle at 100% 0%,  rgba(24,115,186,0.24), transparent 35%),
+        linear-gradient(180deg, #07111b, #0b1826 60%, #09121c 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Radial vignette over grid */
+    .grid-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, var(--bg) 100%);
+    }
+
+    /* ── ANIMATED SCAN LINE ── */
+    .scanline {
+      position: fixed;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.15), transparent);
+      animation: scan 6s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes scan {
+      0%   { top: -2px; }
+      100% { top: 100vh; }
+    }
+
+    /* ── CORNER ACCENTS ── */
+    .corner { position: fixed; width: 60px; height: 60px; pointer-events: none; z-index: 1; }
+    .corner::before, .corner::after { content: ''; position: absolute; background: var(--cyan); opacity: 0.3; }
+    .corner.tl { top: 20px; left: 20px; }
+    .corner.tl::before { top:0; left:0; width:100%; height:1.5px; }
+    .corner.tl::after  { top:0; left:0; width:1.5px; height:100%; }
+    .corner.tr { top: 20px; right: 20px; }
+    .corner.tr::before { top:0; right:0; width:100%; height:1.5px; }
+    .corner.tr::after  { top:0; right:0; width:1.5px; height:100%; }
+    .corner.bl { bottom: 20px; left: 20px; }
+    .corner.bl::before { bottom:0; left:0; width:100%; height:1.5px; }
+    .corner.bl::after  { bottom:0; left:0; width:1.5px; height:100%; }
+    .corner.br { bottom: 20px; right: 20px; }
+    .corner.br::before { bottom:0; right:0; width:100%; height:1.5px; }
+    .corner.br::after  { bottom:0; right:0; width:1.5px; height:100%; }
+
+    /* ── MAIN WRAPPER ── */
+    .wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LOGO / HEADER ── */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      border: 1px solid var(--border-hi);
+      background: var(--cyan-dim);
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .logo-icon svg { width: 28px; height: 28px; }
+
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(34,211,238,0.4), transparent 60%);
+      z-index: -1;
+    }
+
+    .logo-title {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .logo-sub {
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      opacity: 0.7;
+    }
+
+    /* ── ROLE SELECTOR ── */
+    .role-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .role-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--slate);
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .role-btn .role-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .role-btn:hover {
+      border-color: rgba(34,211,238,0.3);
+      color: var(--ink);
+    }
+
+    .role-btn.selected {
+      border-color: var(--border-hi);
+      background: var(--cyan-dim);
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(34,211,238,0.12), inset 0 1px 0 rgba(34,211,238,0.15);
+    }
+
+    .role-btn.selected-driver {
+      border-color: rgba(239,68,68,0.45);
+      background: var(--red-dim);
+      color: #f87171;
+      box-shadow: 0 0 20px rgba(239,68,68,0.1), inset 0 1px 0 rgba(239,68,68,0.12);
+    }
+
+    /* ── PANEL ── */
+    .login-panel {
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 32px;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent);
+    }
+
+    /* Admin panel accent */
+    .login-panel.admin-theme::before {
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.5), transparent);
+    }
+
+    .login-panel.driver-theme::before {
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
+    }
+
+    /* ── EYEBROW ── */
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+
+    .eyebrow.driver-eye { color: #f87171; }
+
+    .panel-title {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 16px; }
+
+    .field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 7px;
+    }
+
+    .field input {
+      width: 100%;
+      background: rgba(7,17,27,0.7);
+      border: 1px solid rgba(34,211,238,0.15);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field input:focus {
+      border-color: var(--border-hi);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.08);
+    }
+
+    .driver-theme .field input:focus {
+      border-color: rgba(239,68,68,0.45);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.08);
+    }
+
+    .field input::placeholder { color: rgba(90,122,150,0.5); }
+
+    /* ── SUBMIT BUTTON ── */
+    .submit-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .submit-btn.admin-btn {
+      background: linear-gradient(135deg, #0ea5c9, #22d3ee);
+      color: #04111a;
+      box-shadow: 0 4px 20px rgba(34,211,238,0.25);
+    }
+
+    .submit-btn.admin-btn:hover {
+      box-shadow: 0 4px 30px rgba(34,211,238,0.4);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn.driver-btn {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(239,68,68,0.25);
+    }
+
+    .submit-btn.driver-btn:hover {
+      box-shadow: 0 4px 30px rgba(239,68,68,0.4);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent);
+      pointer-events: none;
+    }
+
+    /* ── ERROR MESSAGE ── */
+    .error-msg {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .error-msg.show { display: block; }
+
+    /* ── HINT ── */
+    .hint-row {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .hint-box {
+      flex: 1;
+      background: rgba(7,17,27,0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .hint-box .hint-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 4px;
+    }
+
+    .hint-box .hint-val {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(200,216,232,0.5);
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 24px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--slate);
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,238,0.4); }
+      50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(34,211,238,0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid-bg"></div>
+  <div class="scanline"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="wrapper">
+
+    <!-- Logo -->
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 3L25 8.5V19.5L14 25L3 19.5V8.5L14 3Z" stroke="#22d3ee" stroke-width="1.5" fill="rgba(34,211,238,0.08)"/>
+          <circle cx="14" cy="14" r="3" fill="#22d3ee"/>
+          <line x1="14" y1="7" x2="14" y2="11" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="14" y1="17" x2="14" y2="21" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="7" y1="14" x2="11" y2="14" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="17" y1="14" x2="21" y2="14" stroke="#22d3ee" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="logo-title">Dispatch Command</div>
+      <div class="logo-sub">⬡ Secure Access Portal</div>
+    </div>
+
+    <!-- Role Selector -->
+    <div class="role-row">
+      <button class="role-btn selected" id="btn-admin" onclick="selectRole('admin')">
+        <span class="role-icon">🛡️</span>
+        Admin
+      </button>
+      <button class="role-btn" id="btn-driver" onclick="selectRole('driver')">
+        <span class="role-icon">🚛</span>
+        Driver
+      </button>
+    </div>
+
+    <!-- Login Panel -->
+    <div class="login-panel admin-theme" id="login-panel">
+
+      <div class="eyebrow" id="panel-eyebrow">Admin Access</div>
+      <div class="panel-title" id="panel-title">Command Center</div>
+
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off"/>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password" autocomplete="off"
+               onkeydown="if(event.key==='Enter') doLogin()"/>
+      </div>
+
+      <button class="submit-btn admin-btn" id="submit-btn" onclick="doLogin()">
+        Authenticate →
+      </button>
+
+      <div class="error-msg" id="error-msg">⚠ Invalid credentials. Access denied.</div>
+
+      <!-- Credential hints -->
+      <div class="hint-row" id="hint-row">
+        <div class="hint-box">
+          <div class="hint-label">Username</div>
+          <div class="hint-val">admin</div>
+        </div>
+        <div class="hint-box">
+          <div class="hint-label">Password</div>
+          <div class="hint-val">admin123</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span>Systems operational</span>
+    </div>
+
+  </div>
+
+  <script>
+    // ── HARDCODED CREDENTIALS ──
+    const CREDENTIALS = {
+      admin:  { username: 'admin',  password: 'admin123',  redirect: 'index.html' },
+      driver: { username: 'driver', password: 'driver123', redirect: 'driver.html' },
+    };
+
+    let currentRole = 'admin';
+
+    function selectRole(role) {
+      currentRole = role;
+      const panel     = document.getElementById('login-panel');
+      const eyebrow   = document.getElementById('panel-eyebrow');
+      const title     = document.getElementById('panel-title');
+      const btn       = document.getElementById('submit-btn');
+      const hintRow   = document.getElementById('hint-row');
+      const btnAdmin  = document.getElementById('btn-admin');
+      const btnDriver = document.getElementById('btn-driver');
+      const errorMsg  = document.getElementById('error-msg');
+
+      errorMsg.classList.remove('show');
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+
+      if (role === 'admin') {
+        panel.className   = 'login-panel admin-theme';
+        eyebrow.className = 'eyebrow';
+        eyebrow.textContent = 'Admin Access';
+        title.textContent = 'Command Center';
+        btn.className     = 'submit-btn admin-btn';
+        btnAdmin.className  = 'role-btn selected';
+        btnDriver.className = 'role-btn';
+        hintRow.innerHTML = `
+          <div class="hint-box"><div class="hint-label">Username</div><div class="hint-val">admin</div></div>
+          <div class="hint-box"><div class="hint-label">Password</div><div class="hint-val">admin123</div></div>`;
+      } else {
+        panel.className   = 'login-panel driver-theme';
+        eyebrow.className = 'eyebrow driver-eye';
+        eyebrow.textContent = 'Driver Access';
+        title.textContent = 'Driver Portal';
+        btn.className     = 'submit-btn driver-btn';
+        btnAdmin.className  = 'role-btn';
+        btnDriver.className = 'role-btn selected-driver';
+        hintRow.innerHTML = `
+          <div class="hint-box"><div class="hint-label">Username</div><div class="hint-val">driver</div></div>
+          <div class="hint-box"><div class="hint-label">Password</div><div class="hint-val">driver123</div></div>`;
+      }
+    }
+
+    function doLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('error-msg');
+      const creds    = CREDENTIALS[currentRole];
+
+      errorMsg.classList.remove('show');
+
+      if (username === creds.username && password === creds.password) {
+        // Flash success then redirect
+        const btn = document.getElementById('submit-btn');
+        btn.textContent = '✓ Access Granted';
+        btn.style.opacity = '0.8';
+        setTimeout(() => { window.location.href = creds.redirect; }, 800);
+      } else {
+        errorMsg.classList.add('show');
+        const input = document.getElementById('username');
+        input.style.borderColor = 'rgba(239,68,68,0.5)';
+        setTimeout(() => { input.style.borderColor = ''; }, 1500);
+      }
+    }
+  </script>
+
+</body>
+</html>

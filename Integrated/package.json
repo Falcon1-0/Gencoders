@@ -1,0 +1,13 @@
+{
+  "name": "fleetmind-integrated",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:frontends": "npm run build:integrated --prefix Dispatcher && npm run build:integrated --prefix Driver",
+    "dev": "npm run build:frontends && concurrently -k -n portal,backend \"npm run start:integrated --prefix Dispatcher\" \"python -m uvicorn app:app --host 127.0.0.1 --port 8000 --app-dir Backend\"",
+    "frontend:test": "npm run test --prefix Dispatcher"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

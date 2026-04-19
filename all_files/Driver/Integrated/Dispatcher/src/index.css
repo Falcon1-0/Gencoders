@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-command-bg text-command-ink font-body antialiased;
+    background-image:
+      radial-gradient(circle at 0% 100%, rgba(239, 68, 68, 0.16), transparent 30%),
+      radial-gradient(circle at 100% 0%, rgba(24, 115, 186, 0.24), transparent 35%),
+      linear-gradient(180deg, #07111b, #0b1826 60%, #09121c 100%);
+    min-height: 100vh;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(34, 211, 238, 0.35) rgba(15, 26, 38, 0.4);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(34, 211, 238, 0.28);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(8, 19, 31, 0.35);
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-3xl border border-command-border bg-command-panel/80 shadow-panel backdrop-blur-sm;
+  }
+
+  .panel-muted {
+    @apply rounded-2xl border border-white/5 bg-command-panel2/80;
+  }
+
+  .eyebrow {
+    @apply font-display text-xs uppercase tracking-[0.28em] text-command-cyan;
+  }
+
+  .section-title {
+    @apply font-display text-3xl uppercase tracking-[0.08em] text-white md:text-[2.1rem];
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-command-ink/90;
+  }
+
+  .data-label {
+    @apply text-[11px] uppercase tracking-[0.22em] text-command-slate;
+  }
+
+  .grid-overlay {
+    background-size: 40px 40px, 40px 40px;
+  }
+}

@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(15, 92, 74, 0.35), transparent 28%),
+    radial-gradient(circle at top right, rgba(18, 61, 84, 0.28), transparent 32%),
+    linear-gradient(160deg, #0a1018 0%, #111827 46%, #1a1320 100%);
+  color: #e8f0fe;
+  font-family: 'IBM Plex Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+a { color: inherit; }
+button, input, select, textarea { font: inherit; }
+
+.bg-app-shell {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(16, 60, 54, 0.5), transparent 25%),
+    radial-gradient(circle at 85% 10%, rgba(15, 53, 84, 0.32), transparent 26%),
+    radial-gradient(circle at 75% 75%, rgba(122, 42, 32, 0.2), transparent 22%),
+    linear-gradient(155deg, #091018 0%, #111827 48%, #1a1320 100%);
+}
+
+/* ── Custom scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d1526; }
+::-webkit-scrollbar-thumb { background: #1e2d47; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3a54; }

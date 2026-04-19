@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Frontend build output
+dist/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Runtime artifacts
+*.db
+*.mp3
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
